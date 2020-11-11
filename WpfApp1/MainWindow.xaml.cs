@@ -1,11 +1,11 @@
 ﻿using System;
 using System.IO;
 using System.Windows;
-using Microsoft.Win32;
-using NPOI.HSSF.UserModel;
-using System.Collections.Generic;
-using System.Text.RegularExpressions;
+using Syncfusion.XlsIO;
 using System.Linq;
+using Microsoft.Win32;
+using System.Text.RegularExpressions;
+using System.Collections.Generic;
 
 namespace WpfApp1 {
 
@@ -15,18 +15,24 @@ namespace WpfApp1 {
         private string way;
         private string outFile;
 
-        private HSSFWorkbook workbook;
-        private HSSFSheet sheet;
-        private Dictionary<string, int> fildsList;
+        ExcelEngine excelEngine;
+        IWorkbook workbook;
+        IWorksheet sheet;
+        IApplication application;
+        FileStream stream;
+        FileStream streamNew;
 
-        private void CreateNewExcelFile() {
-            outFile = string.Format("{0}{1}{2}{3}", way, "Результат-", DateTime.Now.ToString().Replace(":", ""), ".xls");
-            File.Copy(Path, outFile);
-            // Console.WriteLine(string.Format("{0}{1}{2}{3}", way, "Результат-", DateTime.Now.ToString().Replace(":", ""), ".xls"));
-        }
+        ExcelEngine excelEngineNew;
+        IWorkbook workbookNew;
+        IWorksheet sheetNew;
+        IApplication applicationNew;
 
         public MainWindow() {
             InitializeComponent();
+        }
+
+        private void CreateNameNewExcelFile() {
+            outFile = string.Format("{0}{1}{2}{3}", way, "Результат-", DateTime.Now.ToString().Replace(":", ""), ".xls");
         }
 
         private void Button_Click(object sender, RoutedEventArgs e) {
@@ -39,43 +45,97 @@ namespace WpfApp1 {
             }
         }
 
-        private void Button_Click_1(object sender, RoutedEventArgs e) {
+        private void CreateExcelFile() {
+            excelEngineNew = new ExcelEngine();
+            applicationNew = excelEngine.Excel;
+            applicationNew.DefaultVersion = ExcelVersion.Excel2013;
 
-            fildsList = new Dictionary<string, int>();
+            streamNew = new FileStream(outFile, FileMode.CreateNew, FileAccess.ReadWrite);
+            workbookNew = applicationNew.Workbooks.Create(1);
+            sheetNew = workbookNew.Worksheets[0];
+        }
+
+        private void Button_Click_1(object sender, RoutedEventArgs e) {
 
             if (!String.IsNullOrEmpty(Path)) {
                 try {
-                    OpenExcelFile(Path);
-                }
-                catch {
+                    OpenExcelFile();
+                } catch {
                     MessageBox.Show("Файл открыт в другой программе. Закройте файл и повторите операцию.");
                     return;
                 }
-               
+
                 if (CheckExcel()) {
-                    CreateNewExcelFile();
+                    CreateNameNewExcelFile();
+                    CreateExcelFile();
+                    ConvertToAvicenna();
+                    workbookNew.SaveAs(streamNew);
+                    stream.Dispose();
+                    streamNew.Dispose();
                 };
-                // MessageBox.Show(sheet.GetRow(1).GetCell(1).ToString()); // пример чтения
+
             } else {
                 MessageBox.Show("Выберите файл для преобразования");
             }
         }
 
+        private void ConvertToAvicenna()
+        {
+            int maxIndexHarmfuls = 0;
+            for (int i = 2; i < sheet.Columns[0].LastRow + 1; i++) {
+                // "ФИО"
+                string[] FIO = ConvertFullName(sheet.Range[i, 2].Value);
+                sheetNew.Range[i, 1].Value = FIO[0];
+                sheetNew.Range[i, 2].Value = FIO[1];
+                sheetNew.Range[i, 3].Value = FIO[2];
+                // Дата рождения
+                sheetNew.Range[i, 4].Value = sheet.Range[i, 4].Value;
+                // Подразделение
+                sheetNew.Range[i, 5].Value = sheet.Range[i, 6].Value;
+                // Должность
+                sheetNew.Range[i, 6].Value = sheet.Range[i, 3].Value;
+                // Предприятие
+                sheetNew.Range[i, 7].Value = sheet.Range[i, 5].Value;
+                // Факторы
+                string[] Harmfuls = ConvertHarmfulFactors(sheet.Range[i, 7].Value);
+                int index = 0;
+
+                foreach (string Harm in Harmfuls) {
+                    sheetNew.Range[i, 8 + index].Text = Harm;
+                    index++;
+                    maxIndexHarmfuls = index > maxIndexHarmfuls ? index : maxIndexHarmfuls;
+                }
+            }
+
+            // обзываем колонки 
+            sheetNew.Range["A1"].Value = "Фамилия";
+            sheetNew.Range["B1"].Value = "Имя";
+            sheetNew.Range["C1"].Value = "Отчество";
+            sheetNew.Range["D1"].Value = "Дата рождения";
+            sheetNew.Range["E1"].Value = "Подразделение";
+            sheetNew.Range["F1"].Value = "Должность";
+            sheetNew.Range["G1"].Value = "Предприятие";
+
+            // обзываем колонки факторов
+            for (int i = 1; i < maxIndexHarmfuls + 1; i++) {
+                sheetNew.Range[1, maxIndexHarmfuls + 4 + i].Value = "Вредность " + i;
+            }
+        }
         private void OpenExcelFile() {
-            FileStream file = null;
-            file = new FileStream(Path, FileMode.Open, FileAccess.Read);
-            workbook = new HSSFWorkbook(file);
-            sheet = (HSSFSheet)workbook.GetSheetAt(0);
+            excelEngine = new ExcelEngine();
+            application = excelEngine.Excel;
+           // applicationNew.DefaultVersion = ExcelVersion.Excel2013;
+            stream = new FileStream(Path, FileMode.Open, FileAccess.ReadWrite);
+            workbook = application.Workbooks.Open(stream);
+            sheet = workbook.Worksheets[0];
         }
 
         private bool CheckExcel() {
-            HSSFRow headerRow = (HSSFRow)sheet.GetRow(0);
             string str = "@";
             string result;
 
-            for (int i = 0; i < headerRow.LastCellNum; i++) {
-                fildsList.Add(headerRow.GetCell(i).ToString().ToUpper(), i);
-                str += headerRow.GetCell(i).ToString() + "@";
+            for (int i = 0; i < sheet.Rows[0].LastColumn; i++) {
+                str += sheet.Rows[0].Cells[i].Value.ToString() + "@";
             }
 
             result = CheckColumn(str);
@@ -88,8 +148,9 @@ namespace WpfApp1 {
             }
         }
 
+        // проверяем, что все поля есть
         private string CheckColumn(string str) {
-            string upStr  = str.ToUpper();
+            string upStr = str.ToUpper();
 
             if (!upStr.Contains("@ФИО@")) return "ФИО";
             if (!upStr.Contains("@ДОЛЖНОСТЬ@")) return "ДОЛЖНОСТЬ";
