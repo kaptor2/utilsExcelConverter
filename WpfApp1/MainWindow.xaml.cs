@@ -32,7 +32,7 @@ namespace WpfApp1 {
         }
 
         private void CreateNameNewExcelFile() {
-            outFile = string.Format("{0}{1}{2}{3}", way, "Результат-", DateTime.Now.ToString().Replace(":", ""), ".xls");
+            outFile = string.Format("{0}{1}{2}{3}", way, "Результат-", DateTime.Now.ToString("dd.MM.yyyy hhmmss"), ".xls");
         }
 
         private void Button_Click(object sender, RoutedEventArgs e) {
@@ -96,12 +96,19 @@ namespace WpfApp1 {
                 sheetNew.Range[i, 6].Value = sheet.Range[i, 3].Value;
                 // Предприятие
                 sheetNew.Range[i, 7].Value = sheet.Range[i, 5].Value;
+                // Основное место работы
+                sheetNew.Range[i, 8].Value = sheet.Range[i, 8].Value;
+                // Дата принятия
+                sheetNew.Range[i, 9].Value = sheet.Range[i, 9].Value;
+                // Стаж до этого
+                sheetNew.Range[i, 10].Value = sheet.Range[i, 10].Value;
+
                 // Факторы
                 string[] Harmfuls = ConvertHarmfulFactors(sheet.Range[i, 7].Value);
                 int index = 0;
 
                 foreach (string Harm in Harmfuls) {
-                    sheetNew.Range[i, 8 + index].Text = Harm;
+                    sheetNew.Range[i, 11 + index].Text = dopServices.IsChecked.Value ? Harm + "*" : Harm;
                     index++;
                     maxIndexHarmfuls = index > maxIndexHarmfuls ? index : maxIndexHarmfuls;
                 }
@@ -115,10 +122,14 @@ namespace WpfApp1 {
             sheetNew.Range["E1"].Value = "Подразделение";
             sheetNew.Range["F1"].Value = "Должность";
             sheetNew.Range["G1"].Value = "Предприятие";
+            sheetNew.Range["H1"].Value = "Основное место работы";
+            sheetNew.Range["I1"].Value = "Дата принятия";
+            sheetNew.Range["J1"].Value = "Стаж до этого";
+
 
             // обзываем колонки факторов
             for (int i = 1; i < maxIndexHarmfuls + 1; i++) {
-                sheetNew.Range[1, maxIndexHarmfuls + 4 + i].Value = "Вредность " + i;
+                sheetNew.Range[1, maxIndexHarmfuls + 7 + i].Value = "Вредность " + i;
             }
         }
         private void OpenExcelFile() {

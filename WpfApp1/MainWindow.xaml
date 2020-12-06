@@ -5,13 +5,14 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:WpfApp1"
         mc:Ignorable="d"
-        Title="Преобразовать в формат для Авиценны" Height="120.423" Width="250.402">
+        Title="Преобразовать в формат для Авиценны" Height="140.637" Width="250.402">
     <Grid>
         <Grid.ColumnDefinitions>
             <ColumnDefinition/>
         </Grid.ColumnDefinitions>
         <Button Content="Выбрать документ" Margin="10,9,10,0" VerticalAlignment="Top" Click="Button_Click" Height="20"/>
-        <Label Name="txtEditor" Content="" Margin="10,59,10,0" VerticalAlignment="Top" Height="26"/>
+        <Label Name="txtEditor" Content="" Margin="10,81,10,0" VerticalAlignment="Top" Height="26"/>
         <Button Content="Сконвертировать" Margin="10,34,10,0" VerticalAlignment="Top" Click="Button_Click_1" Height="20"/>
+        <CheckBox Name="dopServices" Content="Учитывать доп. услуги" Height="21" Margin="0,56,10,0" VerticalAlignment="Top" HorizontalAlignment="Right" Width="224" />
     </Grid>
 </Window>
